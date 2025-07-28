@@ -35,6 +35,12 @@ def setBusServoMove(servo_id, servo_pulse, time):
     serialHandle.write(buf)
  
 #控制单个PWM舵机转动
+
+# 将舵机 1 转到 90° （pulse ≈ 1500µs），用时 2 秒
+# pulse取值范围：500-2500
+# 对应舵机角度范围：0°-180°
+# setPWMServoMove(1, 1500, 2000)
+
 def setPWMServoMove(servo_id, servo_pulse, time):
     buf = bytearray(b'\x55\x55')  # 帧头
     buf.append(0x08) #数据长度

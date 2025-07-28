@@ -11,13 +11,25 @@ import time
 
 
 def main() -> None:
+
+    # ServoControl.setBusServoMove(1, 1500, 2000)
+    # ServoControl.setBusServoMove(2, 1500, 2000)
+    # time.sleep(2)  # 等待2秒
+
+
     # 示例：控制舵机1转到1000脉宽，持续时间为2000毫秒
-    ServoControl.setBusServoMove(1, 1000, 2000)
-    ServoControl.setBusServoMove(2, 1000, 2000)
-    time.sleep(2)  # 等待2秒
+    # ServoControl.setBusServoMove(1, 1000, 2000)
+    # ServoControl.setBusServoMove(2, 1000, 2000)
+    # time.sleep(2)  # 等待2秒
+    # print("first servo commands executed successfully.")
+
     ServoControl.setPWMServoMove(1, 1500, 2000)  # 控制PWM舵机1转到1500脉宽，持续时间为2000毫秒
     ServoControl.setPWMServoMove(2, 1500, 2000)  # 控制PWM舵机2转到1500脉宽，持续时间为2000毫秒
     time.sleep(2)  # 等待2秒
+
+ 
+    print("first servo commands executed successfully.")
+
 
     print("Servo commands executed successfully.")
 
