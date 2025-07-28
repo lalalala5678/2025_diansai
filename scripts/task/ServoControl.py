@@ -8,7 +8,7 @@ LOBOT_CMD_ACTION_GROUP_STOP      = 7
 LOBOT_CMD_ACTION_GROUP_SPEED     = 11
 LOBOT_CMD_GET_BATTERY_VOLTAGE    = 15
  
-serialHandle = serial.Serial("/dev/ttyS0", 9600)  # 初始化串口， 波特率为9600
+serialHandle = serial.Serial("/dev/serial0", 9600)  # 初始化串口， 波特率为9600
  
 #控制单个总线舵机转动
 def setBusServoMove(servo_id, servo_pulse, time):
@@ -140,4 +140,17 @@ def setGroupSpeed(group_id, group_speed):
     buf.append(speed_list[0])    #速度
     buf.append(speed_list[1])
     serialHandle.write(buf)
-    
+
+def main():
+    # 示例：控制舵机1转到1000脉宽，持续时间为2000毫秒
+
+    setPWMServoMove(1, 1500, 2000)  # 控制PWM舵机1转到1500脉宽，持续时间为2000毫秒
+    setPWMServoMove(2, 1500, 2000)  # 控制PWM舵机2转到1500脉宽，持续时间为2000毫秒
+    time.sleep(2)  # 等待2秒
+
+    print("Servo commands executed successfully.")
+
+
+
+if __name__ == "__main__":
+    main()
