@@ -1,5 +1,4 @@
 #!/bin/bash
-# task1.sh —— 启动 scripts/task/task1.py
-
 SCRIPT_DIR="$(dirname "$0")"
-python3 "$SCRIPT_DIR/task/task2.py" "$@"
+cd "$SCRIPT_DIR/task"           # 进入 task 子目录
+sudo python3 task2.py "$@"
