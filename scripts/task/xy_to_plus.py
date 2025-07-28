@@ -34,11 +34,11 @@ if __name__ == "__main__":
     import time, ServoControl
 
     # 目标坐标
-    x, y = 30.0, 50.0
+    x, y = 0, 0
     px, py = map_coords_to_pulses(x, y)
 
-    ServoControl.setPWMServoMove(1, px, 500)
-    ServoControl.setPWMServoMove(2, py, 500)
+    ServoControl.setPWMServoMove(1, px, 2000)
+    ServoControl.setPWMServoMove(2, py, 2000)
     time.sleep(0.5)
 
     print(f"(x={x}, y={y}) → (pulse1={px}, pulse2={py})")
