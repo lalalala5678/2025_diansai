@@ -1,0 +1,15 @@
+<!doctype html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>Camera Stream</title>
+</head>
+
+<body>
+    <h1>实时裁剪画面</h1>
+    <img src="{{ url_for('video_feed') }}" style="max-width:100%;">
+    <p><a href="{{ url_for('params_page') }}">← 返回参数页面</a></p>
+</body>
+
+</html>
