@@ -24,7 +24,9 @@
     <!-- 保存按钮：把当前四个参数写入 params.txt -->
     <button id="save-btn" class="btn save">保存参数</button>
 
+    <!-- 页面跳转链接 -->
     <p><a href="{{ url_for('tasks_page') }}">→ 进入任务页面</a></p>
+    <p><a href="{{ url_for('camera_page') }}">→ 打开摄像头页面</a></p> <!-- ★ 新增 -->
 
     <script src="{{ url_for('static', filename='js/params.js') }}"></script>
 </body>
