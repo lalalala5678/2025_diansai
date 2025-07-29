@@ -57,8 +57,10 @@ def set_xy(x: float, y: float, waiting_ms: int = 2000) -> tuple[int, int]:
 # ------------------------------------------------------------------
 if __name__ == "__main__":
     # 测试点：左下角、中心、右上角
-    test_points = [(0, 0), (50, 50), (100, 100)]
+    while True:
 
-    for (x, y) in test_points:
-        px, py = set_xy(x, y, waiting_ms=1500)
-        print(f"(x={x:.1f}, y={y:.1f})  →  pulse1={px}, pulse2={py}")
+        test_points = [(100, 0), (100, 50), (100, 100)]
+
+        for (x, y) in test_points:
+            px, py = set_xy(x, y, waiting_ms=1500)
+            print(f"(x={x:.1f}, y={y:.1f})  →  pulse1={px}, pulse2={py}")

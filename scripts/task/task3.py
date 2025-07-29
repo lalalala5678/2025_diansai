@@ -6,6 +6,9 @@ import math
 import detectrect
 import detect_laser
 import xy_to_plus  # 假定已有舵机控制封装模块
+import numpy as np
+from picamera2 import Picamera2     # 放在文件顶部 import 区
+
 
 # ==== 可配置参数 ====
 FRAME_RATE = 15          # 帧率（FPS）
@@ -18,18 +21,49 @@ CORNER_THRESHOLD = 2.0   # 判定到达角点的距离阈值 (0-100坐标系下)
 logging.basicConfig(level=logging.INFO, format='%(message)s')
 
 def main():
-    # 打开摄像头
-    cap = cv2.VideoCapture(0)
-    if not cap.isOpened():
-        logging.error("Failed to open camera.")
+    # # 打开摄像头
+    # cap = cv2.VideoCapture(0)
+
+    # if not cap.isOpened():
+    #     logging.error("Failed to open camera.")
+    #     return
+
+
+
+    # ---------- 打开树莓派相机 ----------
+    try:
+        cam = Picamera2()
+        cam.configure(
+            cam.create_preview_configuration(          # 预览流，速度快
+                main={"format": "RGB888", "size": (640, 480)}
+            )
+        )
+        cam.start()
+        time.sleep(0.4)                               # 预热
+    except Exception as e:
+        logging.error(f"Failed to open Picamera2: {e}")
         return
 
-    # 读取一帧用于检测黑色矩形轮廓
-    ret, frame = cap.read()
+    # 封装一个函数，后面循环直接调用 read_frame() 代替 cap.read()
+    def read_frame() -> tuple[bool, cv2.Mat]:
+        """读取一帧并转换为 BGR，接口与 cap.read() 类似"""
+        try:
+            rgb = cam.capture_array()                 # ndarray, RGB
+            bgr = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
+            return True, bgr
+        except Exception:
+            return False, None
+
+    # --------- 首帧用于矩形标定 ---------
+    ret, frame = read_frame()
     if not ret:
         logging.error("Failed to capture initial frame for rectangle detection.")
-        cap.release()
+        cam.close()
         return
+
+    
+
+ 
 
     # 检测黑色胶带矩形
     corners, M = detectrect.detect_rectangle(frame)
@@ -49,8 +83,10 @@ def main():
     # 将绿色激光点初始定位到第一个角点上（发出初始舵机控制命令）
     servo_x_cmd = target_x
     servo_y_cmd = target_y
-    xy_to_plus.set_xy(servo_x_cmd, servo_y_cmd)  # 控制舵机指向初始角点
-    time.sleep(0.5)  # 短暂等待舵机到位
+
+    xy_to_plus.set_xy(servo_x_cmd, servo_y_cmd,1000)  # 控制舵机指向初始角点
+
+    time.sleep(1)  # 短暂等待舵机到位
 
     # PID控制相关变量初始化
     prev_err_x = None
@@ -61,7 +97,8 @@ def main():
     start_time = time.time()
     # 主循环，运行30秒循迹
     while time.time() - start_time < 30:
-        ret, frame = cap.read()
+        ret, frame = read_frame()
+
         if not ret:
             logging.warning("Failed to read frame from camera.")
             break
@@ -126,7 +163,11 @@ def main():
         if servo_y_cmd > 100: servo_y_cmd = 100.0
 
         # 发出舵机控制命令
-        xy_to_plus.set_xy(servo_x_cmd, servo_y_cmd)
+        # 发出舵机控制命令（自适应时间）
+        dist  = math.hypot(output_x, output_y)          # 0-100
+        move_ms = max(30, min(60, 4.5 * dist))          # 公式
+        xy_to_plus.set_xy(servo_x_cmd, servo_y_cmd, int(move_ms))
+
 
         # 通过日志输出当前帧的控制数据
         logging.info(f"Err: ({err_x:.1f}, {err_y:.1f}), Target: ({target_x:.1f}, {target_y:.1f}), "
@@ -144,7 +185,9 @@ def main():
             time.sleep(sleep_time)
 
     # 循环结束，释放资源
-    cap.release()
+
+    cam.close()
+
     cv2.destroyAllWindows()
 
 if __name__ == "__main__":

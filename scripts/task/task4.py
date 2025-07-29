@@ -121,7 +121,11 @@ def main():
         if servo_y_cmd > 100: servo_y_cmd = 100.0
 
         # 发送舵机控制信号
-        xy_to_plus.set_xy(servo_x_cmd, servo_y_cmd)
+        # 根据本帧增量自适应估算舵机运动时间
+        step     = math.hypot(output_x, output_y)          # Δd  (0-100 范围)
+        move_ms  = int(max(30, min(60, 4.5 * step)))       # 30 ms ≤ t ≤ 60 ms
+        xy_to_plus.set_xy(servo_x_cmd, servo_y_cmd, move_ms)
+
 
         # 输出当前状态日志
         logging.info(f"Err: ({err_x:.1f}, {err_y:.1f}), Target: ({target_x:.1f}, {target_y:.1f}), "
