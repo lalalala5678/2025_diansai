@@ -118,6 +118,18 @@ def main():
         return
     logging.info(f"Rectangle corners (normalized): {corners.tolist()}")
 
+
+    # 可选：将标定结果绘制在图像上并保存
+    # 这里需要将标定后的数据绘制在图片上，储存进行调试使用
+    cv2.polylines(frame_bgr, [corners.astype(int)], True, (0, 255, 0), 2) # 绘制矩形边框
+    for (x, y) in corners.astype(int):
+        cv2.circle(frame_bgr, (x, y), 6, (0, 0, 255), -1)
+        # 标注坐标
+        cv2.putText(frame_bgr, f"({x},{y})", (x + 10, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+    cv2.imwrite("calibration_result.jpg", frame_bgr)
+
+
+
     # 确定循迹路径的角点顺序（假设 detect_rectangle 返回的角点按顺时针顺序）
     path_points = corners.tolist()
     target_index = 0
