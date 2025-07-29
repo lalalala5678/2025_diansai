@@ -128,7 +128,7 @@ if __name__ == "__main__":
 
     cam = Picamera2()
     cam.configure(cam.create_preview_configuration(
-        main={"format": "RGB888", "size": (1280, 1280)}))
+        main={"format": "RGB888", "size": (2592, 2592)}))
     cam.start(); time.sleep(0.4)
     frame_rgb = cam.capture_array(); cam.close()
     frame_bgr = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2BGR)

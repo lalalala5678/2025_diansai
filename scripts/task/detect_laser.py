@@ -1,5 +1,8 @@
 import cv2
 import numpy as np
+import time
+from picamera2 import Picamera2
+import os
 
 # 定义HSV颜色阈值范围
 # 绿色激光HSV范围 (H约60度，S和V要求较高)
@@ -78,17 +81,53 @@ def detect_red(frame, M, debug=False):
     return _detect_color_spot(frame, M, [LOWER_RED1, LOWER_RED2], [UPPER_RED1, UPPER_RED2], debug=debug)
 
 # 如果直接运行本模块，简单测试摄像头画面中的红/绿光斑检测
+# 如果直接运行本模块，采集 2592x2592 图像并测试红/绿光斑检测
+# 如果直接运行本模块，采集 2592x2592 图像并测试红/绿光斑检测
 if __name__ == "__main__":
-    cap = cv2.VideoCapture(0)
-    ret, frame = cap.read()
-    if not ret:
-        print("Camera capture failed.")
-    else:
-        # 需要有提前标定的M矩阵，这里假设为单位矩阵以进行测试
-        M = np.eye(3)
-        g_pos = detect_green(frame, M, debug=True)
-        r_pos = detect_red(frame, M, debug=True)
-        print("Green laser position:", g_pos)
-        print("Red laser position:", r_pos)
-    cap.release()
-    cv2.destroyAllWindows()
+    from picamera2 import Picamera2
+    import time, os, cv2, numpy as np
+
+    OUT_IMG = "laser_debug.jpg"
+
+    # ---------- 相机抓帧 ----------
+    cam = Picamera2()
+    cam.configure(cam.create_still_configuration(
+        main={"format": "RGB888", "size": (2592, 2592)}
+    ))
+    cam.start(); time.sleep(1.0)
+    frame_rgb = cam.capture_array(); cam.close()
+
+    frame = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2BGR)
+    vis   = frame.copy()
+
+    # ---------- 透视矩阵 ----------
+    M = np.eye(3, dtype=np.float32)   # demo，用真实 M 可输出 0-100 坐标
+
+    # ---------- 光斑检测 ----------
+    g_pos = detect_green(frame, M)
+    r_pos = detect_red  (frame, M)
+    print("green:", g_pos, "red:", r_pos)
+
+    H, W = vis.shape[:2]
+
+    def plot(pt, color, text):
+        if pt is None:
+            return
+        x, y = pt
+        # 判定是否为归一化坐标
+        if 0 <= x <= 100 and 0 <= y <= 100:
+            px = int(x / 100 * (W - 1))
+            py = int((100 - y) / 100 * (H - 1))
+        else:                       # 直接像素
+            px, py = int(x), int(y)
+        cv2.circle(vis, (px, py), 20, color, 3)
+        cv2.putText(vis, text, (px + 25, py),
+                    cv2.FONT_HERSHEY_SIMPLEX, 1.2, color, 3, cv2.LINE_AA)
+
+    plot(g_pos, (0, 255, 0), f"G:{g_pos}")
+    plot(r_pos, (0,   0,255), f"R:{r_pos}")
+
+    cv2.imwrite(OUT_IMG, vis)
+    print("[INFO] saved →", os.path.abspath(OUT_IMG))
+
+
