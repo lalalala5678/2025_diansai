@@ -6,12 +6,13 @@ import os
 
 # 定义HSV颜色阈值范围
 # 绿色激光HSV范围 (H约60度，S和V要求较高)
-LOWER_GREEN = np.array([40, 100, 50])   # 下界: H>=40, S>=100, V>=50
+LOWER_GREEN = np.array([40, 40, 235])   # 下界: H>=40, S>=100, 
 UPPER_GREEN = np.array([80, 255, 255])  # 上界: H<=80
+
 # 红色激光HSV范围需要考虑红色环绕Hue轴两端的情况
-LOWER_RED1 = np.array([0, 100, 50])     # 红色低Hue区间
-UPPER_RED1 = np.array([10, 255, 255])
-LOWER_RED2 = np.array([170, 100, 50])   # 红色高Hue区间
+LOWER_RED1 = np.array([0, 100, 235])     # 红色低Hue区间
+UPPER_RED1 = np.array([40, 255, 255])
+LOWER_RED2 = np.array([140, 100, 235])   # 红色高Hue区间
 UPPER_RED2 = np.array([180, 255, 255])
 
 def _detect_color_spot(frame, M, lower_bounds, upper_bounds, debug=False):
