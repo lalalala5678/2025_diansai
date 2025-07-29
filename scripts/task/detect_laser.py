@@ -58,6 +58,9 @@ def _detect_color_spot(frame, M, lower_bounds, upper_bounds, debug=False):
         cy = M_moments["m01"] / M_moments["m00"]
     # 将中心点从图像像素坐标系映射到0-100坐标系
     pts = np.array([[[cx, cy]]], dtype=np.float32)
+    if M is None:
+        # 不需要透视变换，直接返回像素坐标
+        return (cx, cy)
     norm_pt = cv2.perspectiveTransform(pts, M)
     x_norm = float(norm_pt[0][0][0])
     y_norm = float(norm_pt[0][0][1])

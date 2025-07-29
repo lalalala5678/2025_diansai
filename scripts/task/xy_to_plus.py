@@ -14,6 +14,7 @@ xy_to_plus.py - 将逻辑坐标 (x, y) 映射为舵机PWM脉宽 (pulse1, pulse2)
 
 import math
 import logging
+import ServoControl  # 舵机控制库
 
 # 配置日志输出到文件
 logging.basicConfig(filename='xy_to_plus.log', level=logging.INFO,
@@ -47,7 +48,7 @@ try:
     pulse2_min = float(params.get("pulse2_min", 0))
     pulse2_max = float(params.get("pulse2_max", 0))
 except Exception as e:
-    logging.error("配置参数解析错误: %s", e)
+    logging.error(f"配置参数解析错误: {e}")
     raise
 
 # 为方便，计算一些中间值
@@ -81,14 +82,16 @@ def map_coords_to_pulses(x, y):
     angle_x_deg = math.degrees(angle_x_rad)
     angle_y_deg = math.degrees(angle_y_rad)
 
-    # 将舵机角度映射为脉宽：假设舵机脉宽与物理角度近似线性相关:contentReference[oaicite:0]{index=0}。
-    # 当angle_x_deg = -angle_h/2时对应pulse1_min， angle_x_deg = +angle_h/2对应pulse1_max
-    # 线性内插计算pulse1, pulse2
+    # 将舵机角度映射为脉宽：假设舵机脉宽与物理角度近似线性相关。
+    # 由于安装方向不同，angle_x_deg = -angle_h/2 对应 pulse1_max（激光点在左边界），angle_x_deg = +angle_h/2 对应 pulse1_min（激光点在右边界）。
+    # 同理，angle_y_deg = -angle_v/2 对应 pulse2_min（激光点在上边界），angle_y_deg = +angle_v/2 对应 pulse2_max（激光点在下边界）。
+    # 线性内插计算 pulse1, pulse2
     fraction_x = (angle_x_deg + (angle_h / 2.0)) / angle_h  # 将[-angle_h/2, +angle_h/2]映射到[0,1]
     fraction_y = (angle_y_deg + (angle_v / 2.0)) / angle_v  # 将[-angle_v/2, +angle_v/2]映射到[0,1]
 
-    pulse1 = pulse1_min + fraction_x * (pulse1_max - pulse1_min)
-    pulse2 = pulse2_min + fraction_y * (pulse2_max - pulse2_min)
+    # 根据比例反向映射到舵机脉宽范围
+    pulse1 = pulse1_max - fraction_x * (pulse1_max - pulse1_min)
+    pulse2 = pulse2_max - fraction_y * (pulse2_max - pulse2_min)
 
     # 限制脉宽在[min, max]范围内，避免因计算误差超出范围
     if pulse1 < pulse1_min: pulse1 = pulse1_min
@@ -107,9 +110,8 @@ def set_xy(x, y):
     p1, p2 = map_coords_to_pulses(x, y)
     # 调用具体的舵机控制接口
     try:
-        # 假定ServoControl.setPWMServoMove(channel, pulse)为已有接口，示例调用两路舵机
-        ServoControl.setPWMServoMove(1, int(p1))
-        ServoControl.setPWMServoMove(2, int(p2))
+        ServoControl.setPWMServoMove(1, int(p1), 500)
+        ServoControl.setPWMServoMove(2, int(p2), 500)
         logging.info(f"set_xy: Moved to ({x:.1f}, {y:.1f}) -> pulses ({p1:.1f}, {p2:.1f})")
     except Exception as e:
         logging.error(f"set_xy: 控制舵机移动失败: {e}")
@@ -122,7 +124,7 @@ if __name__ == "__main__":
     for test in [(50, 50), (0, 0), (100, 0), (0, 100), (100, 100)]:
         try:
             set_xy(test[0], test[1])
-        except NameError:
-            # 如果没有实际ServoControl库，用日志模拟输出
+        except Exception:
+            # 如无法实际移动舵机，则记录计算的脉宽值进行模拟
             p1, p2 = map_coords_to_pulses(test[0], test[1])
             logging.info(f"[Demo] Target {test} -> pulses ({p1:.1f}, {p2:.1f})")

@@ -1,0 +1,97 @@
+2025-07-29 17:39:47,041 [calibration] INFO: === 开始激光舵机系统标定 ===
+2025-07-29 17:39:47,041 [calibration] INFO: 1. 水平扫描: 固定垂直舵机在中心位置，扫描水平舵机从左到右边界
+2025-07-29 17:39:47,041 [calibration] ERROR: 舵机移动命令失败: name 'ServoControl' is not defined
+2025-07-29 17:39:48,472 [calibration] INFO: Camera stopped
+2025-07-29 17:39:48,680 [calibration] INFO: Camera closed successfully.
+2025-07-29 17:43:17,997 [calibration] INFO: === 开始激光舵机系统标定 ===
+2025-07-29 17:43:17,997 [calibration] INFO: 1. 水平扫描: 固定垂直舵机在中心位置，扫描水平舵机从左到右边界
+2025-07-29 17:43:17,997 [calibration] ERROR: 舵机移动命令失败: name 'ServoControl' is not defined
+2025-07-29 17:43:19,426 [calibration] INFO: Camera stopped
+2025-07-29 17:43:19,634 [calibration] INFO: Camera closed successfully.
+2025-07-29 17:48:10,793 [calibration] INFO: === 开始激光舵机系统标定 ===
+2025-07-29 17:48:10,793 [calibration] INFO: 1. 水平扫描: 固定垂直舵机在中心位置，扫描水平舵机从左到右边界
+2025-07-29 17:48:10,793 [calibration] ERROR: 舵机移动命令失败: name 'ServoControl' is not defined
+2025-07-29 17:48:12,922 [calibration] INFO: 左边界像素坐标: (828.3, 854.6)
+2025-07-29 17:48:12,922 [calibration] ERROR: 舵机移动命令失败: name 'ServoControl' is not defined
+2025-07-29 17:48:15,430 [calibration] INFO: 右边界像素坐标: (828.4, 854.4)
+2025-07-29 17:48:15,430 [calibration] ERROR: 舵机移动命令失败: name 'ServoControl' is not defined
+2025-07-29 17:48:17,798 [calibration] INFO: 中心位置像素坐标: (828.1, 853.5)
+2025-07-29 17:48:17,798 [calibration] INFO: 水平原点偏移ox = -401.954 (逻辑坐标)
+2025-07-29 17:48:17,798 [calibration] INFO: 采集水平1/4、3/4位置的激光点...
+2025-07-29 17:48:17,798 [calibration] ERROR: 舵机移动命令失败: name 'ServoControl' is not defined
+2025-07-29 17:48:20,166 [calibration] ERROR: 舵机移动命令失败: name 'ServoControl' is not defined
+2025-07-29 17:48:22,536 [calibration] INFO: 水平1/4位置逻辑坐标(校正后) = 408.06, 3/4位置逻辑坐标(校正后) = 644.00
+2025-07-29 17:48:22,536 [calibration] INFO: 水平角度拟合: target_ratio = 2.3594
+2025-07-29 17:48:22,536 [calibration] INFO: 拟合得到水平最大扫描角度 angle_h ≈ 179.00 度
+2025-07-29 17:48:22,536 [calibration] INFO: 2. 垂直扫描: 固定水平舵机在中心位置，扫描垂直舵机从下到上边界
+2025-07-29 17:48:22,536 [calibration] ERROR: 舵机移动命令失败: name 'ServoControl' is not defined
+2025-07-29 17:48:25,046 [calibration] INFO: 下边界像素坐标: (828.8, 854.4)
+2025-07-29 17:48:25,046 [calibration] ERROR: 舵机移动命令失败: name 'ServoControl' is not defined
+2025-07-29 17:48:27,552 [calibration] INFO: 上边界像素坐标: (828.6, 854.4)
+2025-07-29 17:48:27,552 [calibration] INFO: 垂直原点偏移oy = 22233.435 (逻辑坐标)
+2025-07-29 17:48:27,552 [calibration] INFO: 采集垂直1/4、3/4位置的激光点...
+2025-07-29 17:48:27,552 [calibration] ERROR: 舵机移动命令失败: name 'ServoControl' is not defined
+2025-07-29 17:48:29,923 [calibration] ERROR: 舵机移动命令失败: name 'ServoControl' is not defined
+2025-07-29 17:48:32,289 [calibration] INFO: 垂直1/4位置逻辑坐标(校正后) = -5293.40, 3/4位置逻辑坐标(校正后) = -39465.95
+2025-07-29 17:48:32,290 [calibration] INFO: 垂直角度拟合: target_ratio = -341.7254
+2025-07-29 17:48:32,290 [calibration] INFO: 拟合得到垂直最大扫描角度 angle_v ≈ 1.00 度
+2025-07-29 17:48:32,290 [calibration] INFO: 3. 保存标定结果到配置文件 plus.txt
+2025-07-29 17:48:32,290 [calibration] INFO: 标定参数已成功写入 plus.txt
+2025-07-29 17:48:32,290 [calibration] INFO: === 标定完成: ox=-401.954, oy=22233.435, angle_h=179.00, angle_v=1.00 ===
+2025-07-29 17:48:32,429 [calibration] INFO: Camera stopped
+2025-07-29 17:48:32,632 [calibration] INFO: Camera closed successfully.
+2025-07-29 17:49:22,180 [calibration] INFO: === 开始激光舵机系统标定 ===
+2025-07-29 17:49:22,181 [calibration] INFO: 1. 水平扫描: 固定垂直舵机在中心位置，扫描水平舵机从左到右边界
+2025-07-29 17:49:22,181 [calibration] ERROR: 舵机移动命令失败: setPWMServoMove() missing 1 required positional argument: 'time'
+2025-07-29 17:49:24,727 [calibration] INFO: 左边界像素坐标: (832.2, 855.8)
+2025-07-29 17:49:24,728 [calibration] ERROR: 舵机移动命令失败: setPWMServoMove() missing 1 required positional argument: 'time'
+2025-07-29 17:49:27,237 [calibration] INFO: 右边界像素坐标: (832.2, 856.2)
+2025-07-29 17:49:27,237 [calibration] ERROR: 舵机移动命令失败: setPWMServoMove() missing 1 required positional argument: 'time'
+2025-07-29 17:49:29,606 [calibration] INFO: 中心位置像素坐标: (832.6, 856.3)
+2025-07-29 17:49:29,606 [calibration] INFO: 水平原点偏移ox = -849.424 (逻辑坐标)
+2025-07-29 17:49:29,606 [calibration] INFO: 采集水平1/4、3/4位置的激光点...
+2025-07-29 17:49:29,606 [calibration] ERROR: 舵机移动命令失败: setPWMServoMove() missing 1 required positional argument: 'time'
+2025-07-29 17:49:31,973 [calibration] ERROR: 舵机移动命令失败: setPWMServoMove() missing 1 required positional argument: 'time'
+2025-07-29 17:49:34,049 [calibration] INFO: 水平1/4位置逻辑坐标(校正后) = 492.84, 3/4位置逻辑坐标(校正后) = 1081.71
+2025-07-29 17:49:34,050 [calibration] INFO: 水平角度拟合: target_ratio = 5.8887
+2025-07-29 17:49:34,050 [calibration] INFO: 拟合得到水平最大扫描角度 angle_h ≈ 179.00 度
+2025-07-29 17:49:34,050 [calibration] INFO: 2. 垂直扫描: 固定水平舵机在中心位置，扫描垂直舵机从下到上边界
+2025-07-29 17:49:34,050 [calibration] ERROR: 舵机移动命令失败: setPWMServoMove() missing 1 required positional argument: 'time'
+2025-07-29 17:49:35,999 [calibration] INFO: 下边界像素坐标: (832.3, 853.4)
+2025-07-29 17:49:35,999 [calibration] ERROR: 舵机移动命令失败: setPWMServoMove() missing 1 required positional argument: 'time'
+2025-07-29 17:49:37,949 [calibration] INFO: 上边界像素坐标: (832.3, 852.8)
+2025-07-29 17:49:37,950 [calibration] INFO: 垂直原点偏移oy = -509.416 (逻辑坐标)
+2025-07-29 17:49:37,950 [calibration] INFO: 采集垂直1/4、3/4位置的激光点...
+2025-07-29 17:49:37,950 [calibration] ERROR: 舵机移动命令失败: setPWMServoMove() missing 1 required positional argument: 'time'
+2025-07-29 17:49:40,326 [calibration] ERROR: 舵机移动命令失败: setPWMServoMove() missing 1 required positional argument: 'time'
+2025-07-29 17:49:42,701 [calibration] INFO: 垂直1/4位置逻辑坐标(校正后) = 587.30, 3/4位置逻辑坐标(校正后) = 938.88
+2025-07-29 17:49:42,701 [calibration] INFO: 垂直角度拟合: target_ratio = 3.5158
+2025-07-29 17:49:42,701 [calibration] INFO: 拟合得到垂直最大扫描角度 angle_v ≈ 179.00 度
+2025-07-29 17:49:42,701 [calibration] INFO: 3. 保存标定结果到配置文件 plus.txt
+2025-07-29 17:49:42,701 [calibration] INFO: 标定参数已成功写入 plus.txt
+2025-07-29 17:49:42,702 [calibration] INFO: === 标定完成: ox=-849.424, oy=-509.416, angle_h=179.00, angle_v=179.00 ===
+2025-07-29 17:49:42,842 [calibration] INFO: Camera stopped
+2025-07-29 17:49:43,054 [calibration] INFO: Camera closed successfully.
+2025-07-29 17:51:35,260 [calibration] INFO: === 开始激光舵机系统标定 ===
+2025-07-29 17:51:35,260 [calibration] INFO: 1. 水平扫描: 固定垂直舵机在中心位置，扫描水平舵机从左到右边界
+2025-07-29 17:51:35,260 [calibration] ERROR: 舵机移动命令失败: setPWMServoMove() missing 1 required positional argument: 'time'
+2025-07-29 17:51:37,176 [calibration] ERROR: 左边界激光点检测失败！
+2025-07-29 17:51:37,180 [calibration] INFO: Camera stopped
+2025-07-29 17:51:37,383 [calibration] INFO: Camera closed successfully.
+2025-07-29 17:52:53,668 [calibration] INFO: === 开始激光舵机系统标定 ===
+2025-07-29 17:52:53,668 [calibration] INFO: 1. 水平扫描: 固定垂直舵机在中心位置，扫描水平舵机从左到右边界
+2025-07-29 17:52:53,668 [calibration] ERROR: 舵机移动命令失败: setPWMServoMove() missing 1 required positional argument: 'time'
+2025-07-29 17:52:56,209 [calibration] ERROR: 左边界激光点检测失败！
+2025-07-29 17:52:56,214 [calibration] INFO: Camera stopped
+2025-07-29 17:52:56,417 [calibration] INFO: Camera closed successfully.
+2025-07-29 17:53:12,409 [calibration] INFO: === 开始激光舵机系统标定 ===
+2025-07-29 17:53:12,409 [calibration] INFO: 1. 水平扫描: 固定垂直舵机在中心位置，扫描水平舵机从左到右边界
+2025-07-29 17:53:12,409 [calibration] ERROR: 舵机移动命令失败: setPWMServoMove() missing 1 required positional argument: 'time'
+2025-07-29 17:53:14,955 [calibration] ERROR: 左边界激光点检测失败！
+2025-07-29 17:53:15,094 [calibration] INFO: Camera stopped
+2025-07-29 17:53:15,298 [calibration] INFO: Camera closed successfully.
+2025-07-29 17:54:43,125 [calibration] INFO: === 开始激光舵机系统标定 ===
+2025-07-29 17:54:43,125 [calibration] INFO: 1. 水平扫描: 固定垂直舵机在中心位置，扫描水平舵机从左到右边界
+2025-07-29 17:54:44,822 [calibration] ERROR: 左边界激光点检测失败！
+2025-07-29 17:54:44,833 [calibration] INFO: Camera stopped
+2025-07-29 17:54:45,036 [calibration] INFO: Camera closed successfully.
