@@ -1,121 +1,145 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-综合控制模块 main_control.py
-启动后：
-1. 检测黑色胶带矩形四角坐标（仅首次执行）。
-2. 连续捕获图像，检测绿色激光光斑位置。
-3. 利用PID控制算法将激光光斑沿着黑色胶带依次移动到矩形的四个角。
-4. 运行指定时间后结束。
-"""
-import time
 import cv2
-from simple_pid import PID  # 使用simple_pid库实现PID控制
-# 导入我们编写的矩形检测和激光检测模块
-import detect_rect
+import logging
+import time
+# 导入自定义模块
+import detectrect
 import detect_laser
+import xy_to_plus
 
-# 控制参数配置
-MAX_RUNTIME = 30.0  # 最大运行时间（秒）
-# PID参数（需根据实际系统调试）
-KP = 0.5
-KI = 0.0
-KD = 0.05
-TOLERANCE = 1.0  # 目标判定阈值 (在归一化坐标下，误差小于此视为到达目标)
+# ==== 可配置参数 ====
+FRAME_RATE = 15         # 帧率（FPS）
+PID_KP = 0.5            # PID 比例系数
+PID_KI = 0.1            # PID 积分系数
+PID_KD = 0.05           # PID 微分系数
 
-if __name__ == "__main__":
-    # 1) 初始化：获取黑色矩形的四个角点坐标
-    corners = detect_rect.find_black_rectangle_corners(debug=False)
-    if not corners or len(corners) != 4:
-        print("未能检测到有效的黑色矩形，程序退出。")
-        exit(1)
-    # 将角点按照顺时针顺序赋值便于引用
-    tl, tr, br, bl = corners  # 左上，右上，右下，左下
-    print("黑色矩形角点坐标:", corners)
-    # 建议：确保激光光斑初始位于 tl 点处，以便后续沿边运行
+logging.basicConfig(level=logging.INFO, format='%(message)s')
 
-    # 2) 准备PID控制器，分别控制X和Y轴方向
-    pid_x = PID(KP, KI, KD, setpoint=tl[0])  # 初始目标X设为左上角X
-    pid_y = PID(KP, KI, KD, setpoint=tl[1])  # 初始目标Y设为左上角Y
-    # 如有需要，可设置PID输出限制，例如伺服转动范围等
-    # pid_x.output_limits = (-1.0, 1.0)
-    # pid_y.output_limits = (-1.0, 1.0)
+def main():
+    cap = cv2.VideoCapture(0)
+    if not cap.isOpened():
+        logging.error("Failed to open camera.")
+        return
 
-    # 3) 启动相机视频模式（持续获取帧）
-    cam = detect_rect.Picamera2()
-    cam.configure(cam.create_still_configuration())  # 使用静态捕获配置
-    cam.start()
-    time.sleep(1)  # 稍微等待摄像头稳定
-    print("开始激光光斑追踪控制...")
+    # 获取透视变换矩阵M（通过检测黑色矩形；若已有M可省略此步骤）
+    ret, frame = cap.read()
+    if not ret:
+        logging.error("Failed to capture frame for calibration.")
+        cap.release()
+        return
+    corners, M = detectrect.detect_rectangle(frame)
+    if M is None:
+        logging.warning("Calibration rectangle not found. Using identity transform.")
+        M = np.eye(3, dtype=np.float32)  # 若未检测到矩形，用单位矩阵作为近似映射（可能影响精度）
+
+    # 检测初始位置
+    red_pos = None
+    green_pos = None
+    # 尝试获取初始红、绿光斑位置（等待两者都检测到）
+    for _ in range(10):
+        ret, frame = cap.read()
+        if not ret:
+            continue
+        # 获取红色和绿色光斑的位置
+        g = detect_laser.detect_green(frame, M)
+        r = detect_laser.detect_red(frame, M)
+        if g is not None:
+            green_pos = g
+        if r is not None:
+            red_pos = r
+        if green_pos is not None and red_pos is not None:
+            break
+
+    if green_pos is None or red_pos is None:
+        logging.error("Initial laser spot positions not found (Green or Red missing).")
+        cap.release()
+        return
+
+    # 初始当前位置设定
+    current_x, current_y = green_pos  # 绿激光初始坐标
+    target_x, target_y = red_pos     # 红激光初始坐标（目标）
+    # 将舵机当前位置设为绿光初始位置，确保PID初始误差正确
+    servo_x_cmd = current_x
+    servo_y_cmd = current_y
+    # 不立即移动舵机，让其保持当前指向（因为绿光已经在那里）
+
+    # PID控制变量初始化
+    prev_err_x = None
+    prev_err_y = None
+    integral_x = 0.0
+    integral_y = 0.0
 
     start_time = time.time()
-    # 当前目标索引（依次为0:tl->1:tr->2:br->3:bl->再回到0循环）
-    target_index = 1  # 我们假定激光从tl开始，所以下一个目标是tr（索引1）
-    current_target = tr  # 当前目标坐标初始化为右上角
-    pid_x.setpoint = current_target[0]
-    pid_y.setpoint = current_target[1]
+    while time.time() - start_time < 30:
+        ret, frame = cap.read()
+        if not ret:
+            logging.warning("Failed to read frame from camera.")
+            break
 
-    try:
-        while True:
-            # 获取当前帧并预处理（裁剪为与初始相同的ROI，并缩放480x480）
-            frame = cam.capture_array()
-            # 裁剪成与初始相同的中心正方形区域
-            h, w = frame.shape[:2]
-            side_len = min(w, h)
-            center_pt = (w // 2, h // 2)
-            cropped_frame = detect_rect.crop_image(frame, center_pt, side_len, side_len)
-            resized_frame = cv2.resize(cropped_frame, (480, 480))
-            # 检测当前帧中绿色激光光斑位置
-            green_pos = detect_laser.detect_green_spot(resized_frame)
-            if green_pos is None:
-                # 如果未检测到光斑，可以跳过本次循环或采取其他措施
-                print("[WARN] 当前帧未找到绿色光斑")
-                continue
-            current_x, current_y = green_pos
-            # 计算控制输出
-            control_x = pid_x(current_x)
-            control_y = pid_y(current_y)
-            # 将控制输出应用于执行机构（例如电机转动）。这里用伪代码表示：
-            # motor_x.move(control_x)
-            # motor_y.move(control_y)
-            # 或根据具体硬件API调用控制。例如:
-            # pan_servo.angle += control_x
-            # tilt_servo.angle += control_y
+        # 检测当前红色和绿色激光位置
+        pos_green = detect_laser.detect_green(frame, M)
+        pos_red = detect_laser.detect_red(frame, M)
+        if pos_green is None or pos_red is None:
+            # 如有任一未检测到，跳过本帧（保持上一控制输出）
+            if pos_green is None:
+                logging.warning("Green laser spot lost.")
+            if pos_red is None:
+                logging.warning("Red laser spot lost.")
+            continue
 
-            # 检查是否接近当前目标点
-            error_x = abs(current_target[0] - current_x)
-            error_y = abs(current_target[1] - current_y)
-            if error_x < TOLERANCE and error_y < TOLERANCE:
-                # 达到目标附近，切换到下一个目标
-                target_index = (target_index + 1) % 4
-                if target_index == 0:
-                    next_target = tl
-                elif target_index == 1:
-                    next_target = tr
-                elif target_index == 2:
-                    next_target = br
-                else:
-                    next_target = bl
-                # 更新PID目标值
-                # 如果矩形边平行于轴，可固定一轴防止偏离路径
-                if current_target[1] == next_target[1]:
-                    # 水平移动，保持Y不变
-                    pid_y.setpoint = current_target[1]
-                    pid_x.setpoint = next_target[0]
-                elif current_target[0] == next_target[0]:
-                    # 垂直移动，保持X不变
-                    pid_x.setpoint = current_target[0]
-                    pid_y.setpoint = next_target[1]
-                else:
-                    # 对角情况（一般不存在于矩形），直接设置目标
-                    pid_x.setpoint = next_target[0]
-                    pid_y.setpoint = next_target[1]
-                current_target = next_target
-                print(f"切换下一个目标点: {current_target}")
-            # 退出条件检查
-            if time.time() - start_time > MAX_RUNTIME:
-                print(f"运行时间已达{MAX_RUNTIME}秒，停止控制。")
-                break
-    finally:
-        # 确保程序结束时关闭摄像头
-        cam.close()
+        current_x, current_y = pos_green  # 绿色光斑当前坐标
+        target_x, target_y = pos_red      # 红色光斑当前坐标（作为目标）
+        # 计算位置误差（让绿色光点追踪红色光点）
+        err_x = target_x - current_x
+        err_y = target_y - current_y
+
+        # 计算时间间隔 dt
+        current_time = time.time()
+        dt = current_time - start_time if prev_err_x is None else current_time - last_time
+        if dt <= 0:
+            dt = 1.0 / FRAME_RATE
+
+        # 更新PID积分
+        integral_x += err_x * dt
+        integral_y += err_y * dt
+        # 计算PID微分项
+        derivative_x = 0.0
+        derivative_y = 0.0
+        if prev_err_x is not None and prev_err_y is not None:
+            derivative_x = (err_x - prev_err_x) / dt
+            derivative_y = (err_y - prev_err_y) / dt
+
+        # PID输出计算
+        output_x = PID_KP * err_x + PID_KI * integral_x + PID_KD * derivative_x
+        output_y = PID_KP * err_y + PID_KI * integral_y + PID_KD * derivative_y
+
+        # 更新舵机控制指令，并限制在0-100范围
+        servo_x_cmd += output_x
+        servo_y_cmd += output_y
+        if servo_x_cmd < 0: servo_x_cmd = 0.0
+        if servo_x_cmd > 100: servo_x_cmd = 100.0
+        if servo_y_cmd < 0: servo_y_cmd = 0.0
+        if servo_y_cmd > 100: servo_y_cmd = 100.0
+
+        # 发送舵机控制信号
+        xy_to_plus.set_xy(servo_x_cmd, servo_y_cmd)
+
+        # 输出当前状态日志
+        logging.info(f"Err: ({err_x:.1f}, {err_y:.1f}), Target: ({target_x:.1f}, {target_y:.1f}), "
+                     f"Pos: ({current_x:.1f}, {current_y:.1f}), PWM: ({servo_x_cmd:.1f}, {servo_y_cmd:.1f})")
+
+        # 更新前一循环误差和时间
+        prev_err_x = err_x
+        prev_err_y = err_y
+        last_time = current_time
+
+        # 按设定帧率等待
+        loop_duration = time.time() - current_time
+        sleep_time = (1.0 / FRAME_RATE) - loop_duration
+        if sleep_time > 0:
+            time.sleep(sleep_time)
+
+    cap.release()
+    cv2.destroyAllWindows()
+
+if __name__ == "__main__":
+    main()

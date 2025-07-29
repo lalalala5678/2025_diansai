@@ -1,89 +1,94 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-激光光斑检测模块 detect_laser.py
-提供函数用于检测图像中的红色或绿色激光光斑，返回其归一化坐标。
-要求输入图像应为已裁剪对准的正方形区域图（如480x480），以匹配坐标系。
-"""
 import cv2
 import numpy as np
-from typing import Tuple, Optional
 
-def detect_red_spot(img: np.ndarray) -> Optional[Tuple[float, float]]:
+# 定义HSV颜色阈值范围
+# 绿色激光HSV范围 (H约60度，S和V要求较高)
+LOWER_GREEN = np.array([40, 100, 50])   # 下界: H>=40, S>=100, V>=50
+UPPER_GREEN = np.array([80, 255, 255])  # 上界: H<=80
+# 红色激光HSV范围需要考虑红色环绕Hue轴两端的情况
+LOWER_RED1 = np.array([0, 100, 50])     # 红色低Hue区间
+UPPER_RED1 = np.array([10, 255, 255])
+LOWER_RED2 = np.array([170, 100, 50])   # 红色高Hue区间
+UPPER_RED2 = np.array([180, 255, 255])
+
+def _detect_color_spot(frame, M, lower_bounds, upper_bounds, debug=False):
     """
-    检测图像中的红色激光光斑，返回其 (X, Y) 归一化坐标。
-    如未检测到红色光斑，则返回 None。
+    通用的颜色光斑检测函数。
+    根据提供的HSV颜色范围，在图像中检测相应颜色的光斑，并计算其中心位置。
+    参数:
+        frame (numpy.ndarray): BGR图像帧。
+        M (numpy.ndarray): 3x3透视变换矩阵，用于将像素坐标转换到0-100坐标系。
+        lower_bounds (list): HSV下界列表（可包含一个或多个区间）。
+        upper_bounds (list): HSV上界列表，与lower_bounds对应。
+        debug (bool): 若为True，输出调试信息或显示检测可视化。
+    返回:
+        (x, y) 元组表示光斑中心在0-100坐标系下的坐标。未检测到则返回 None。
     """
-    # 将 BGR 图像转换到 HSV 色彩空间
-    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-    # 定义红色的HSV阈值范围（包含低H和高H两段）
-    lower_red1 = np.array([0, 100, 100])    # 红色低端 (接近0度)
-    upper_red1 = np.array([10, 255, 255])
-    lower_red2 = np.array([170, 100, 100])  # 红色高端 (接近360度，在OpenCV中约179)
-    upper_red2 = np.array([180, 255, 255])
-    # 生成红色掩膜
-    mask1 = cv2.inRange(hsv, lower_red1, upper_red1)
-    mask2 = cv2.inRange(hsv, lower_red2, upper_red2)
-    mask = cv2.bitwise_or(mask1, mask2)
-    # 可选：进行一次形态学操作去噪（如开操作去除小点）
-    kernel = np.ones((3, 3), np.uint8)
-    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
-    # 查找红色光斑的轮廓
-    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    # 转换到HSV色域
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    # 构建颜色掩膜（支持多个区间，针对红色）
+    mask_total = None
+    for lower, upper in zip(lower_bounds, upper_bounds):
+        mask = cv2.inRange(hsv, lower, upper)
+        if mask_total is None:
+            mask_total = mask
+        else:
+            mask_total = cv2.bitwise_or(mask_total, mask)
+    # 可选: 进行形态学操作去除噪点（这里省略，以免滤除小光斑）
+
+    # 查找掩膜中的轮廓
+    contours, _ = cv2.findContours(mask_total, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     if not contours:
+        if debug:
+            print("[_detect_color_spot] No contour found for specified color")
         return None
-    # 找到面积最大的候选轮廓
-    largest = max(contours, key=cv2.contourArea)
-    # 计算该轮廓的中心
-    M = cv2.moments(largest)
-    if M["m00"] == 0:  # 避免除数为零
-        return None
-    cx = M["m10"] / M["m00"]
-    cy = M["m01"] / M["m00"]
-    # 将中心坐标转换为归一化的百分比坐标 (0~100)
-    h, w = img.shape[:2]
-    norm_x = (cx / (w - 1)) * 100.0
-    norm_y = ((h - 1 - cy) / (h - 1)) * 100.0
-    return (round(norm_x, 4), round(norm_y, 4))
 
-def detect_green_spot(img: np.ndarray) -> Optional[Tuple[float, float]]:
-    """
-    检测图像中的绿色激光光斑，返回其 (X, Y) 归一化坐标。
-    如未检测到绿色光斑，则返回 None。
-    """
-    # 转换为 HSV 色彩空间
-    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-    # 定义绿色的HSV范围
-    lower_green = np.array([35, 100, 100])
-    upper_green = np.array([85, 255, 255])
-    mask = cv2.inRange(hsv, lower_green, upper_green)
-    # 形态学开操作，去除噪点
-    kernel = np.ones((3, 3), np.uint8)
-    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
-    # 查找绿色光斑轮廓
-    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    if not contours:
-        return None
+    # 选取最大面积的轮廓来代表激光光斑
     largest = max(contours, key=cv2.contourArea)
-    M = cv2.moments(largest)
-    if M["m00"] == 0:
-        return None
-    cx = M["m10"] / M["m00"]
-    cy = M["m01"] / M["m00"]
-    # 转换为归一化坐标
-    h, w = img.shape[:2]
-    norm_x = (cx / (w - 1)) * 100.0
-    norm_y = ((h - 1 - cy) / (h - 1)) * 100.0
-    return (round(norm_x, 4), round(norm_y, 4))
-
-# 模块测试
-if __name__ == "__main__":
-    # 从当前目录读取测试图片 (cropped.jpg)
-    test_img = cv2.imread("cropped.jpg")
-    if test_img is None:
-        print("未找到 cropped.jpg 测试文件！")
+    # 计算轮廓的中心(M00为0的情况用点坐标代替)
+    M_moments = cv2.moments(largest)
+    if M_moments["m00"] == 0:
+        cx, cy = largest[0][0][0], largest[0][0][1]
     else:
-        red_coord = detect_red_spot(test_img)
-        green_coord = detect_green_spot(test_img)
-        print("红色光斑坐标:", red_coord)
-        print("绿色光斑坐标:", green_coord)
+        cx = M_moments["m10"] / M_moments["m00"]
+        cy = M_moments["m01"] / M_moments["m00"]
+    # 将中心点从图像像素坐标系映射到0-100坐标系
+    pts = np.array([[[cx, cy]]], dtype=np.float32)
+    norm_pt = cv2.perspectiveTransform(pts, M)
+    x_norm = float(norm_pt[0][0][0])
+    y_norm = float(norm_pt[0][0][1])
+
+    if debug:
+        # 调试模式: 在图像上标记光斑中心并显示
+        debug_img = frame.copy()
+        cv2.circle(debug_img, (int(cx), int(cy)), 5, (255, 255, 255), 2)  # 用白色圆圈标出检测中心
+        cv2.imshow("laser_debug", debug_img)
+        cv2.waitKey(1)  # 显示窗口，稍纵即逝; 按需修改暂停时间或按键退出
+        # 打印检测到的中心位置
+        print(f"[_detect_color_spot] Center (pixel)=({cx:.1f}, {cy:.1f}), (normalized)=({x_norm:.1f}, {y_norm:.1f})")
+
+    return (x_norm, y_norm)
+
+def detect_green(frame, M, debug=False):
+    """检测图像中的绿色激光光斑，返回其在0-100坐标系下的中心坐标(tuple)。"""
+    return _detect_color_spot(frame, M, [LOWER_GREEN], [UPPER_GREEN], debug=debug)
+
+def detect_red(frame, M, debug=False):
+    """检测图像中的红色激光光斑，返回其在0-100坐标系下的中心坐标(tuple)。"""
+    return _detect_color_spot(frame, M, [LOWER_RED1, LOWER_RED2], [UPPER_RED1, UPPER_RED2], debug=debug)
+
+# 如果直接运行本模块，简单测试摄像头画面中的红/绿光斑检测
+if __name__ == "__main__":
+    cap = cv2.VideoCapture(0)
+    ret, frame = cap.read()
+    if not ret:
+        print("Camera capture failed.")
+    else:
+        # 需要有提前标定的M矩阵，这里假设为单位矩阵以进行测试
+        M = np.eye(3)
+        g_pos = detect_green(frame, M, debug=True)
+        r_pos = detect_red(frame, M, debug=True)
+        print("Green laser position:", g_pos)
+        print("Red laser position:", r_pos)
+    cap.release()
+    cv2.destroyAllWindows()
